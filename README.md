@@ -59,7 +59,8 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 
-## 🔑 Demo Credentials
+## 🔑 Demo Credentials & Live Link
+- **Live Deployment**: [https://shamba-sage.vercel.app/](https://shamba-sage.vercel.app/)
 - **Admin**: `admin@smartseason.com` / `admin123`
 - **Agent**: `agent@smartseason.com` / `agent123`
 
