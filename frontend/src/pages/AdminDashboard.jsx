@@ -35,7 +35,12 @@ export default function AdminDashboard() {
                 return acc;
             }, { total: 0, active: 0, risk: 0, completed: 0 });
             setStats(s);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            if (err.response?.status === 401) {
+                setError('Session expired. Please log in again.');
+            }
+        }
     };
 
     const loadAgents = async () => {
@@ -47,16 +52,21 @@ export default function AdminDashboard() {
 
     const handleCreateField = async (e) => {
         e.preventDefault();
+        setFieldError('');
         try {
             await api.post('/fields', newField);
             setShowFieldModal(false);
             setNewField({ name: '', crop_type: '', planting_date: '', assigned_agent_id: '' });
             loadFields();
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            setFieldError(err.response?.data?.error || 'Failed to create field. Unauthorized or server error.');
+        }
     };
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldError, setFieldError] = useState('');
 
     const handleCreateAgent = async (e) => {
         e.preventDefault();
@@ -144,6 +154,13 @@ export default function AdminDashboard() {
                                 New Field
                             </button>
                         </header>
+
+                        {error && (
+                            <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-sm font-medium border border-red-100 mb-8 flex items-center gap-3">
+                                <AlertTriangle className="w-5 h-5" />
+                                {error}
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                             <StatsCard label="Total Fields" value={stats.total} icon={<Trees />} color="blue" />
@@ -238,6 +255,11 @@ export default function AdminDashboard() {
                             <h2 className="text-2xl font-bold text-slate-800">New Field</h2>
                             <button type="button" onClick={() => setShowFieldModal(false)}><X /></button>
                         </div>
+                        {fieldError && (
+                            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-medium border border-red-100 mb-2">
+                                {fieldError}
+                            </div>
+                        )}
                         <input className="w-full border-2 border-slate-100 rounded-xl p-3 outline-none focus:border-green-500" placeholder="Field Name" required value={newField.name} onChange={e => setNewField({ ...newField, name: e.target.value })} />
                         <input className="w-full border-2 border-slate-100 rounded-xl p-3 outline-none focus:border-green-500" placeholder="Crop Type" required value={newField.crop_type} onChange={e => setNewField({ ...newField, crop_type: e.target.value })} />
                         <input type="date" className="w-full border-2 border-slate-100 rounded-xl p-3 outline-none focus:border-green-500" required value={newField.planting_date} onChange={e => setNewField({ ...newField, planting_date: e.target.value })} />

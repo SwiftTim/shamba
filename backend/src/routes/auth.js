@@ -27,9 +27,11 @@ router.post('/login', async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
+        const isLocalhost = req.get('host').includes('localhost');
         res.cookie('token', token, {
             httpOnly: true,
-            sameSite: 'lax',
+            secure: !isLocalhost, // Secure in production/remote
+            sameSite: isLocalhost ? 'lax' : 'none', // None for cross-site remote
             maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
         res.json({ user: { id: user.id, name: user.name, role: user.role } });
