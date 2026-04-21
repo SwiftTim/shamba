@@ -20,7 +20,14 @@ app.use('/api/updates', require('./routes/updates'));
 app.use('/api/users', require('./routes/users'));
 
 // Health check
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', async (req, res) => {
+    try {
+        await require('./config/db').query('SELECT 1');
+        res.json({ status: 'ok', database: 'connected' });
+    } catch (err) {
+        res.status(500).json({ status: 'error', database: 'disconnected', message: err.message });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
