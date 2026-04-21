@@ -5,13 +5,22 @@ const db = require('../config/db');
 
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
+    console.log(`LIVE LOGIN ATTEMPT: [${email}]`);
     try {
         const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
         const user = rows[0];
 
-        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+        if (!user) {
+            console.log('DEBUG: User NOT found in database');
             return res.status(401).json({ error: 'Invalid credentials' });
         }
+
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            console.log('DEBUG: Password mismatch');
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        console.log('DEBUG: Login successful');
 
         const token = jwt.sign(
             { id: user.id, role: user.role, name: user.name },
