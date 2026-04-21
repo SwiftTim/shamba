@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/client';
 import StatusBadge from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Trees, Users, AlertTriangle, CheckCircle, Plus, LogOut, X, UserCheck, UserPlus } from 'lucide-react';
+import { LayoutDashboard, Trees, Users, AlertTriangle, CheckCircle, Plus, LogOut, X, UserCheck, UserPlus, History } from 'lucide-react';
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -12,6 +12,12 @@ export default function AdminDashboard() {
     const [showFieldModal, setShowFieldModal] = useState(false);
     const [showAgentModal, setShowAgentModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(null); // stores field object
+    const [showHistoryModal, setShowHistoryModal] = useState(null); // stores field object
+    const [historyData, setHistoryData] = useState([]);
+
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [fieldError, setFieldError] = useState('');
     const { logout, user } = useAuth();
 
     // Form States
@@ -64,9 +70,14 @@ export default function AdminDashboard() {
         }
     };
 
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [fieldError, setFieldError] = useState('');
+    const loadHistory = async (field) => {
+        try {
+            setHistoryData([]);
+            setShowHistoryModal(field);
+            const { data } = await api.get(`/updates/${field.id}`);
+            setHistoryData(data);
+        } catch (err) { console.error(err); }
+    };
 
     const handleCreateAgent = async (e) => {
         e.preventDefault();
@@ -175,7 +186,7 @@ export default function AdminDashboard() {
                                     <tr>
                                         <th className="px-6 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">Field Name</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">Crop Type</th>
-                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">Growth Stage</th>
+                                        <th className="px-6 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">Assigned Agent</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">Latest Notes</th>
                                         <th className="px-6 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider text-right">Actions</th>
@@ -186,11 +197,7 @@ export default function AdminDashboard() {
                                         <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-6 py-4 font-bold text-slate-800">{f.name}</td>
                                             <td className="px-6 py-4 text-slate-600">{f.crop_type}</td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100">
-                                                    {f.current_stage}
-                                                </span>
-                                            </td>
+                                            <td className="px-6 py-4 text-slate-600 font-medium">{f.agent_name || 'Unassigned'}</td>
                                             <td className="px-6 py-4"><StatusBadge status={f.status} /></td>
                                             <td className="px-6 py-4">
                                                 <p className="text-sm text-slate-500 italic max-w-xs truncate" title={f.notes}>
@@ -198,13 +205,22 @@ export default function AdminDashboard() {
                                                 </p>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => setShowAssignModal(f)}
-                                                    className="text-green-600 hover:text-green-700 text-sm font-bold flex items-center gap-1 justify-end w-full"
-                                                >
-                                                    <UserCheck className="w-4 h-4" />
-                                                    Reassign
-                                                </button>
+                                                <div className="flex flex-col gap-1 items-end">
+                                                    <button
+                                                        onClick={() => loadHistory(f)}
+                                                        className="text-slate-400 hover:text-slate-600 text-xs font-bold flex items-center gap-1"
+                                                    >
+                                                        <History className="w-3 h-3" />
+                                                        History
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setShowAssignModal(f)}
+                                                        className="text-green-600 hover:text-green-700 text-xs font-bold flex items-center gap-1"
+                                                    >
+                                                        <UserCheck className="w-3 h-3" />
+                                                        Reassign
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -328,6 +344,41 @@ export default function AdminDashboard() {
                                     </div>
                                 </button>
                             ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* History Modal */}
+            {showHistoryModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6 z-50">
+                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-8 animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-800">Field History</h2>
+                                <p className="text-slate-500 text-sm">{showHistoryModal.name}</p>
+                            </div>
+                            <button onClick={() => setShowHistoryModal(null)}><X /></button>
+                        </div>
+
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                            {historyData.length === 0 ? (
+                                <p className="text-center py-10 text-slate-400">No updates recorded for this field.</p>
+                            ) : (
+                                historyData.map(update => (
+                                    <div key={update.id} className="border-l-2 border-green-200 pl-4 py-1">
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-xs font-bold text-green-600 uppercase bg-green-50 px-2 py-0.5 rounded">
+                                                {update.new_stage}
+                                            </span>
+                                            <span className="text-[10px] text-slate-400 font-medium">
+                                                {new Date(update.created_at).toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-slate-700 mt-1">{update.notes || 'No notes provided'}</p>
+                                        <p className="text-[10px] text-slate-400 mt-1 font-bold">— Updated by {update.agent_name}</p>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

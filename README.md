@@ -63,5 +63,19 @@ cd frontend && npm run dev
 - **Admin**: `admin@smartseason.com` / `admin123`
 - **Agent**: `agent@smartseason.com` / `agent123`
 
+## 🧠 Design Decisions & Assumptions
+
+### Design Decisions
+- **Relational Data Model**: A normalized PostgreSQL schema was chosen to ensure data integrity, especially for tracking field updates and multi-agent assignments.
+- **JWT Authentication**: Stateless authentication using JSON Web Tokens (JWT) was implemented to allow for easy scaling and secure role-based access.
+- **Computed Status Logic**: Instead of storing a mutable "status" field, the system computes the status in real-time based on growth stages and update frequency. This ensures the "At Risk" flag is always accurate without needing background cron jobs.
+- **Monorepo Structure**: A clear separation between `frontend` and `backend` facilitates parallel development and simplifies deployment workflows.
+- **Component-Driven UI**: Reusable dashboard components and modals ensure a consistent user experience and easy maintainability.
+
+### Assumptions
+- **Monitoring Frequency**: We assume a 7-day threshold for "At Risk" status is appropriate for typical crop growth cycles.
+- **Agent Focus**: We assume agents should only focus on their assigned fields to minimize distractions and data entry errors.
+- **Session Security**: We assume the application will be hosted over HTTPS in production, enabling secure cross-site cookies for the frontend-backend integration.
+
 ---
 *Developed as part of the Full Stack Developer Technical Assessment.*
